@@ -10,14 +10,17 @@ int keyIndex = 0;            // your network key Index number (needed only for W
 //
 int status = WL_IDLE_STATUS;
 char server[] = "www.google.com";    // name address for Google (using DNS)
-char driveServer[] = "70.165.248.69:40890";    // name address for AT&T Drive APIs (using DNS)
+char driveServer[] = "luigi.hack.att.io:3000";    // name address for AT&T Drive APIs (using DNS)
 char digitalHomeServer[] = "https://systest.digitallife.att.com:443";    // name address for AT&T Connected Home APIs (using DNS)
 WiFiClient client;
 
 //Sensors
-int touch = 6;   //attach a button to digital pin 6
-int LED = 13;      //on board
 int speakerPin = 3; //Piezo pickup on digital pin 3
+int button = 4; //button for reset
+int touch = 6;   //attach a button to digital pin 5
+//int touch2 = 6;   //attach a button to digital pin 6
+int LED = 13;      //on board
+
 
 //Touch count
 int touchCount = 0;
@@ -83,9 +86,16 @@ void loop()
    while(true);
    }
    */
-
-
-  int buttonState = digitalRead(touch);  //read the status of the button
+   
+   // Button Reset
+   if(digitalRead(button) == 1){
+     resetTouchInput();
+     ignore = false;
+     button = false;
+   }
+   
+  //read the status of the button
+  int buttonState = digitalRead(touch);
   if(buttonState == 1){
 
     //Count how many touches
@@ -93,6 +103,7 @@ void loop()
     Serial.println("\nTouch Count = ");
     Serial.print(touchCount);
     //Start Timer
+    //TBD
     //TBD
 
     int pitch = random(0,8);
@@ -115,18 +126,20 @@ void loop()
       if (client.connect(digitalHomeServer, 80)) {
         Serial.println("connected to AT&T Digital Home");
         // Make a HTTP request:
-        client.println("POST /penguin/api/FFB4D699E0E64AE3A0142EC6A0E2D6F2/devices/DL00000004/lock HTTP/1.1");
+        client.println("POST /penguin/api/FFB4D699E0E64AE3A0142EC6A0E2D6F2/devices/DL00000004/lock");
         client.println("Host: https://systest.digitallife.att.com:443");
+        client.println("Content-type: Application/JSON");
+        client.println("Accepts: Application/JSON");
+        //Auth header user:password Base 64 encode
+        client.println("Authorization Base: cHJvdmlkZXI6MTIzNA==");
         client.println("Connection: close");
         client.println();
         //Send signal to open garage door
-        Serial.println("\nPosting /api/{gatewayGUID}/devices/{deviceGUID}/{action}");
-        
-        
-        //Clear inputs
-        resetTouchInput();      
+        Serial.println("\nPosting /api/{gatewayGUID}/devices/{deviceGUID}/{action}");         
 
       }
+      //Clear inputs
+        resetTouchInput();  
     }
 
     //Unlock car door
@@ -137,16 +150,21 @@ void loop()
       if (client.connect(driveServer, 80)) {
         Serial.println("connected to AT&T Drive");
         // Make a HTTP request to open lock car door
-        client.println("POST /remoteservices/v1/vehicle/lock/1xacr15x0tta00033 HTTP/1.1");
-        client.println("Host: 70.165.248.69:40890");
+        client.println("POST /remoteservices/v1/vehicle/unlock/5004675921");
+        client.println("Host: http://luigi.hack.att.io:3000");
+        client.println("Content-type: Application/JSON");
+        client.println("Accepts: Application/JSON");
+        //Auth header user:password Base 64 encode
+        client.println("Authorization Base: cHJvdmlkZXI6MTIzNA==");
+        //Need to send empty JSON Block
+        //Content length 2
+        //user pass example provider/1234
+        //Can Validate call Charles proxy
         client.println("Connection: close");
-        client.println();
-
-
-        //Clear inputs
-        resetTouchInput();      
-
+        client.println();         
       }
+      //Clear inputs
+        resetTouchInput(); 
     }
 
     /*
